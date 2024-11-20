@@ -19,7 +19,7 @@ class StreamlitApp:
         self.voice_interface = VoiceInterface()
         
         # Initialize API endpoint
-        self.api_endpoint = os.getenv("API_ENDPOINT", "http://localhost:8000")
+        self.api_endpoint = os.getenv("API_ENDPOINT")
         
     def setup_streamlit(self):
         """Configure Streamlit page settings and styling."""
