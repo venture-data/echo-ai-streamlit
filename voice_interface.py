@@ -9,7 +9,6 @@ import assemblyai as aai
 from openai import OpenAI
 import os
 from typing import Optional
-import streamlit as st
 
 # Load environment variables
 load_dotenv(override=True)
@@ -18,8 +17,8 @@ class VoiceInterface:
     def __init__(self):
         """Initialize the voice interface with API keys and audio settings."""
         # Load API keys from environment
-        self.assemblyai_api_key = st.secrets['ASSEMBLYAI_API_KEY']
-        self.elevenlabs_api_key = st.secrets['ELEVENLABS_API_KEY']
+        self.assemblyai_api_key = os.getenv("ASSEMBLYAI_API_KEY")
+        self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
         
         if not self.assemblyai_api_key or not self.elevenlabs_api_key:
             raise ValueError("Missing required API keys in environment variables")
@@ -83,7 +82,7 @@ class VoiceInterface:
         # print(f"API Key being used: {os.getenv('OPENAI_API_KEY')}")
         try:
             # Initialize OpenAI client
-            client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             
             # Construct the prompt
             prompt = f"""
@@ -183,7 +182,7 @@ class VoiceInterface:
             str: Appropriate response message
         """
         try:
-            client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             
             prompt = f"""
             Analyze if this response indicates a positive intent to order/buy (yes) or negative (no).
