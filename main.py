@@ -191,7 +191,7 @@ class StreamlitApp:
                         
                             try:
                                 response = requests.post(
-                                    f"{self.api_endpoint}/frequent-bought-recommend",
+                                    f"{self.api_endpoint}/all-recommendations",
                                     json={"product_name": item_captilized},
                                     timeout=10
                                 )
