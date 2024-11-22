@@ -1,4 +1,5 @@
 from typing import List, Tuple
+from datetime import datetime, timedelta, timezone
 
 class DataMapping:
     @staticmethod
@@ -68,6 +69,32 @@ class Responses:
 
         non_matched_items = ", ".join(not_matching)
         return f"Apart from the items I recommended, here are other items that you might be interested in buying: {non_matched_items}."
+    
+    @staticmethod
+    def greeting_based_on_time() -> str:
+        """
+        Categorizes the current system time (adjusted to GMT+5) into Morning, Noon, Afternoon, Evening, or Night
+        and returns an appropriate greeting.
+
+        Returns:
+            str: Greeting based on the current system time.
+        """
+        # Get the current UTC time and adjust to GMT+5
+        gmt_plus_5_time = datetime.now(timezone.utc) + timedelta(hours=5)
+        current_time = gmt_plus_5_time.time()
+
+        if current_time >= datetime.strptime("05:00", "%H:%M").time() and current_time < datetime.strptime("12:00", "%H:%M").time():
+            period = "Morning"
+        elif current_time >= datetime.strptime("12:00", "%H:%M").time() and current_time < datetime.strptime("13:00", "%H:%M").time():
+            period = "Noon"
+        elif current_time >= datetime.strptime("13:00", "%H:%M").time() and current_time < datetime.strptime("17:00", "%H:%M").time():
+            period = "Afternoon"
+        elif current_time >= datetime.strptime("17:00", "%H:%M").time() and current_time < datetime.strptime("21:00", "%H:%M").time():
+            period = "Evening"
+        else:
+            period = "Night"
+
+        return f"Hello, Good {period}, What would you like to order today?"
 
 if __name__ == "__main__":
     matching = ["Apple iPhone 13 Pro Max", "iPhone 13 Pro Limited Edition"]
