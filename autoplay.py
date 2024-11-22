@@ -33,56 +33,30 @@ def autoplay_audio(file_path: str):
 
 def play_audio_sequence(audio_files: list):
     """
-    Plays multiple audio files sequentially, waiting for each to finish before starting the next
+    Plays multiple audio files sequentially using Streamlit's native audio component
     
     Parameters:
         audio_files (list): List of paths to audio files to play in sequence
     """
-    if not audio_files:
-        return
-
-    # Generate unique IDs for each audio element
-    audio_ids = [f"audio_{uuid.uuid4().hex[:8]}" for _ in audio_files]
+    # Create a unique key for this sequence
+    if 'current_audio_index' not in st.session_state:
+        st.session_state.current_audio_index = 0
     
-    # Create base64 encodings for all audio files
-    audio_b64s = []
-    for file_path in audio_files:
-        with open(file_path, "rb") as f:
-            data = f.read()
-            audio_b64s.append(base64.b64encode(data).decode())
+    if 'last_audio_time' not in st.session_state:
+        st.session_state.last_audio_time = time.time()
     
-    # Create HTML/JavaScript for sequential playback
-    audio_elements = []
-    for i, (b64, audio_id) in enumerate(zip(audio_b64s, audio_ids)):
-        audio_elements.append(f"""
-            <audio id="{audio_id}" style="display: none">
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-            </audio>
-        """)
-    
-    js_code = """
-        <script>
-            function playSequentially(audioIds, currentIndex) {
-                if (currentIndex >= audioIds.length) return;
-                
-                const currentAudio = document.getElementById(audioIds[currentIndex]);
-                if (currentAudio) {
-                    currentAudio.play();
-                    currentAudio.addEventListener('ended', function() {
-                        playSequentially(audioIds, currentIndex + 1);
-                    });
-                }
-            }
-            
-            // Start playing the sequence
-            const audioIds = {audio_ids_str};
-            playSequentially(audioIds, 0);
-        </script>
-    """
-    
-    # Combine all elements and inject into page
-    md = f"""
-        {''.join(audio_elements)}
-        {js_code.replace('{audio_ids_str}', str(audio_ids))}
-    """
-    st.markdown(md, unsafe_allow_html=True)
+    # Play current audio file
+    if st.session_state.current_audio_index < len(audio_files):
+        current_file = audio_files[st.session_state.current_audio_index]
+        st.audio(current_file, key=f"audio_{st.session_state.current_audio_index}")
+        
+        # Add a small delay to ensure sequential playback
+        time.sleep(0.5)
+        
+        # Update index for next audio file
+        st.session_state.current_audio_index += 1
+        if st.session_state.current_audio_index < len(audio_files):
+            st.rerun()
+        else:
+            # Reset when sequence is complete
+            st.session_state.current_audio_index = 0
