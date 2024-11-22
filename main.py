@@ -186,7 +186,7 @@ class StreamlitApp:
                             order_intent = self.voice_interface.check_order_intent(transcript)
                             audio_path = self.voice_interface.text_to_speech(order_intent)
                             if audio_path:
-                                st.audio(audio_path)
+                                autoplay_audio(audio_path)
 
                         if item_name:
                             item_captilized = self.voice_interface.capitalize_word(item_name)
@@ -224,7 +224,7 @@ class StreamlitApp:
 
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
                                 if audio_path_2:
-                                    delayed_autoplay_audio(audio_path_2, 15)
+                                    delayed_autoplay_audio(audio_path_2, 20)
 
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(
