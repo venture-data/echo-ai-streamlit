@@ -5,6 +5,7 @@ from voice_interface import VoiceInterface
 import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
+from utils import DataMapping, Responses
 
 # Load environment variables
 load_dotenv(override=True)
@@ -17,6 +18,8 @@ class StreamlitApp:
         
         # Initialize voice interface
         self.voice_interface = VoiceInterface()
+        self.data_mapping = DataMapping()
+        self.response = Responses()
         
         # Initialize API endpoint
         self.api_endpoint = st.secrets['API_ENDPOINT']
@@ -201,12 +204,22 @@ class StreamlitApp:
                                 print(recommendations)
                                 st.session_state.last_recommendation = recommendations
 
-                                script = self.voice_interface.format_recommendation_message(recommendations)
-                                print(script)
+                                matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(recommendations, item_captilized)
+                                matching_script = self.response.matching_list(matching_items)
+                                not_matching_script = self.response.not_matching_list(not_matching_items)
+                                print(f"Matching Script: {matching_script}")
+                                print(f"Not Matching Script: {not_matching_script}")
 
-                                audio_path = self.voice_interface.text_to_speech(script)
-                                if audio_path:
-                                    st.audio(audio_path)
+                                script = self.voice_interface.format_recommendation_message(recommendations)
+                                # print(script)
+
+                                audio_path_1 = self.voice_interface.text_to_speech(matching_script)
+                                if audio_path_1:
+                                    st.audio(audio_path_1)
+
+                                audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
+                                if audio_path_2:
+                                    st.audio(audio_path_2)
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(
                         #         [f"• {rec}" for rec in recommendations[:3]]
