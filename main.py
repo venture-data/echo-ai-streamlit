@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
 from utils import DataMapping, Responses
-from autoplay import autoplay_audio, play_audio_sequence, play_greeting_audio
+from autoplay import autoplay_audio, play_audio_sequence
 
 # Load environment variables
 load_dotenv(override=True)
@@ -143,19 +143,10 @@ class StreamlitApp:
         """Display voice control buttons and recording status."""
         with st.container():
             st.write("Click to start/stop recording:")
-            if 'greeting_played' not in st.session_state:
-                st.session_state.greeting_played = False
-            
-            # Only play greeting if it hasn't been played in this session
-            if not st.session_state.greeting_played:
-                greetings_text = self.response.greeting_based_on_time()
-                audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
-                if audio_path_greetings:
-                    play_greeting_audio(audio_path_greetings)
-                    st.session_state.greeting_played = True
-            # audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
-            # if audio_path_greetings:
-            #     autoplay_audio(audio_path_greetings)
+            greetings_text = self.response.greeting_based_on_time()
+            audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
+            if audio_path_greetings:
+                st.audio(audio_path_greetings)
             # Add the audio recorder
             wav_audio_data = st_audiorec()
             
