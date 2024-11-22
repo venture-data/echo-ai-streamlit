@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
 from utils import DataMapping, Responses
-from autoplay import autoplay_audio
+from autoplay import autoplay_audio, delayed_autoplay_audio
 
 # Load environment variables
 load_dotenv(override=True)
@@ -224,7 +224,7 @@ class StreamlitApp:
 
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
                                 if audio_path_2:
-                                    autoplay_audio(audio_path_2)
+                                    delayed_autoplay_audio(audio_path_2, 15)
 
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(

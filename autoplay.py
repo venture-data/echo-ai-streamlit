@@ -30,3 +30,10 @@ def autoplay_audio(file_path: str):
         </script>
     """
     st.markdown(md, unsafe_allow_html=True)
+
+def delayed_autoplay_audio(file_path: str, delay_seconds: int):
+    """
+    Auto-plays an audio file after a specified delay
+    """
+    time.sleep(delay_seconds)
+    autoplay_audio(file_path)
