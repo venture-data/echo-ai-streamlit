@@ -219,11 +219,11 @@ class StreamlitApp:
 
                                 audio_path_1 = self.voice_interface.text_to_speech(matching_script)
                                 if audio_path_1:
-                                    st.audio(audio_path_1)
+                                    autoplay_audio(audio_path_1)
 
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
                                 if audio_path_2:
-                                    st.audio(audio_path_2)
+                                    autoplay_audio(audio_path_2)
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(
                         #         [f"• {rec}" for rec in recommendations[:3]]
