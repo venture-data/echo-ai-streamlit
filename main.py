@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
 from utils import DataMapping, Responses
-from autoplay import autoplay_audio, play_audio_sequence, play_audio_sequence_alt
+from autoplay import autoplay_audio
 
 # Load environment variables
 load_dotenv(override=True)
@@ -146,7 +146,7 @@ class StreamlitApp:
             greetings_text = self.response.greeting_based_on_time()
             audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
             if audio_path_greetings:
-                st.audio(audio_path_greetings)
+                autoplay_audio(audio_path_greetings)
             # Add the audio recorder
             wav_audio_data = st_audiorec()
             
@@ -216,22 +216,16 @@ class StreamlitApp:
 
                                 # script = self.voice_interface.format_recommendation_message(recommendations)
                                 # # print(script)
-                                audio_paths = []
+                                # audio_paths = []
 
                                 audio_path_1 = self.voice_interface.text_to_speech(matching_script)
                                 if audio_path_1:
-                                    audio_paths.append(audio_path_1)
+                                    autoplay_audio(audio_path_1)
 
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
                                 if audio_path_2:
-                                    audio_paths.append(audio_path_2)
+                                    autoplay_audio(audio_path_2)
 
-                                if audio_paths:
-                                    try:
-                                        play_audio_sequence(audio_paths)
-                                    except Exception as e:
-                                        # If the first method fails, try the alternative
-                                        play_audio_sequence_alt(audio_paths)
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(
                         #         [f"• {rec}" for rec in recommendations[:3]]
