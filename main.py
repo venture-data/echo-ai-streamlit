@@ -269,7 +269,7 @@ class StreamlitApp:
         """Display current recommendations if available."""
         if st.session_state.last_recommendation:
             st.subheader("Latest Recommendations")
-            for rec in st.session_state.last_recommendation[:3]:
+            for rec in st.session_state.last_recommendation[:5]:
                 with st.container():
                     col1, col2 = st.columns([4, 1])
                     with col1:
