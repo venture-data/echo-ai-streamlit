@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
 from utils import DataMapping, Responses
+from autoplay import autoplay_audio
 
 # Load environment variables
 load_dotenv(override=True)
@@ -145,7 +146,7 @@ class StreamlitApp:
             greetings_text = self.response.greeting_based_on_time()
             audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
             if audio_path_greetings:
-                st.audio(audio_path_greetings)
+                autoplay_audio(audio_path_greetings)
             # Add the audio recorder
             wav_audio_data = st_audiorec()
             
