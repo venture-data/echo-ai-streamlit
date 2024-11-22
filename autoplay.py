@@ -96,7 +96,7 @@ def play_greeting_audio(file_path: str):
         file_path (str): Path to the audio file to play
     """
     # Generate a timestamp to force browser to reload audio on each refresh
-    timestamp = int(time() * 1000)
+    timestamp = str(int(time.time() * 1000))
     
     with open(file_path, "rb") as f:
         data = f.read()
@@ -108,29 +108,26 @@ def play_greeting_audio(file_path: str):
                 <source src="data:audio/mp3;base64,{b64}?t={timestamp}" type="audio/mp3">
             </audio>
             <script>
-                // Wait for DOM to be ready
-                document.addEventListener('DOMContentLoaded', function() {{
-                    const audio = document.getElementById('greetingAudio');
-                    
-                    // Force reload and play
-                    audio.load();
-                    
-                    // Play the audio as soon as possible
-                    const playPromise = audio.play();
-                    
-                    if (playPromise !== undefined) {{
-                        playPromise.catch(error => {{
-                            console.log("Auto-play prevented by browser");
-                        }});
-                    }}
-                    
-                    // Clean up when done
-                    audio.addEventListener('ended', function() {{
-                        const container = document.getElementById('greetingAudioContainer');
-                        if (container) {{
-                            container.style.display = 'none';
-                        }}
+                const audio = document.getElementById('greetingAudio');
+                
+                // Force reload and play
+                audio.load();
+                
+                // Play the audio as soon as possible
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {{
+                    playPromise.catch(error => {{
+                        console.log("Auto-play prevented by browser");
                     }});
+                }}
+                
+                // Clean up when done
+                audio.addEventListener('ended', function() {{
+                    const container = document.getElementById('greetingAudioContainer');
+                    if (container) {{
+                        container.style.display = 'none';
+                    }}
                 }});
             </script>
         </div>

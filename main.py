@@ -145,6 +145,8 @@ class StreamlitApp:
             st.write("Click to start/stop recording:")
             if 'greeting_played' not in st.session_state:
                 st.session_state.greeting_played = False
+            
+            # Only play greeting if it hasn't been played in this session
             if not st.session_state.greeting_played:
                 greetings_text = self.response.greeting_based_on_time()
                 audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
