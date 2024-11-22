@@ -228,6 +228,7 @@ class StreamlitApp:
                             except requests.exceptions.RequestException as e:
                                 st.error(f"Error getting recommendations: {str(e)}")
                                 recommendation_text = "I'm having trouble getting recommendations right now."
+                                return recommendation_text
                         
                         # st.session_state.conversation.append({
                         #     "role": "assistant",
