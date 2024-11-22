@@ -142,7 +142,10 @@ class StreamlitApp:
         """Display voice control buttons and recording status."""
         with st.container():
             st.write("Click to start/stop recording:")
-            
+            greetings_text = self.response.greeting_based_on_time()
+            audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
+            if audio_path_greetings:
+                st.audio(audio_path_greetings)
             # Add the audio recorder
             wav_audio_data = st_audiorec()
             
