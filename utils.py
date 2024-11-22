@@ -16,22 +16,24 @@ class DataMapping:
                 - The first list contains strings that have all parts of the product name.
                 - The second list contains strings that do not have all parts of the product name.
         """
-        # Split the product name into parts based on spaces
-        product_parts = product_name.split()
+        # Convert product name and recommendation list to lowercase
+        product_parts = product_name.lower().split()
+        recommendation_lower = [item.lower() for item in recommendation]
 
         # Lists to hold results
         matching_all_parts = []
         not_matching_all_parts = []
 
         # Check each string in the recommendation list
-        for item in recommendation:
+        for original_item, lower_item in zip(recommendation, recommendation_lower):
             # Check if all parts of the product name are in the current string
-            if all(part.lower() in item.lower() for part in product_parts):
-                matching_all_parts.append(item)
+            if all(part in lower_item for part in product_parts):
+                matching_all_parts.append(original_item)
             else:
-                not_matching_all_parts.append(item)
+                not_matching_all_parts.append(original_item)
 
         return matching_all_parts, not_matching_all_parts
+
 
 if __name__ == "__main__":
     # Sample data
@@ -43,7 +45,7 @@ if __name__ == "__main__":
         "iPhone 13 Pro Limited Edition",
         "Sony Xperia Pro"
     ]
-    product_name = "iPhone Pro"
+    product_name = "iPhone pRo"
 
     # Test the function
     matching, not_matching = DataMapping.split_list_on_product_name(recommendation, product_name)
