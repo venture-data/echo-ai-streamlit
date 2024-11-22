@@ -33,9 +33,48 @@ class DataMapping:
                 not_matching_all_parts.append(original_item)
 
         return matching_all_parts, not_matching_all_parts
+    
+class Responses:
+    @staticmethod
+    def matching_list(matching: List[str]) -> str:
+        """
+        Generates a response for the items that match the requested product name parts.
 
+        Args:
+            matching (List[str]): List of matched item names.
+
+        Returns:
+            str: Response message for matching items.
+        """
+        if not matching:
+            return "I couldn't find any items matching your request. Let me know if you'd like me to try again!"
+
+        matched_items = ", ".join(matching)
+        return f"Here are the items that you requested: {matched_items}. Let me know if you're interested in adding these to your cart."
+
+    @staticmethod
+    def not_matching_list(not_matching: List[str]) -> str:
+        """
+        Generates a response for the items that do not match all product name parts.
+
+        Args:
+            not_matching (List[str]): List of not-matching item names.
+
+        Returns:
+            str: Response message for non-matching items.
+        """
+        if not not_matching:
+            return "I couldn't find any additional items that might interest you."
+
+        non_matched_items = ", ".join(not_matching)
+        return f"Apart from the items I recommended, here are other items that you might be interested in buying: {non_matched_items}."
 
 if __name__ == "__main__":
+    matching = ["Apple iPhone 13 Pro Max", "iPhone 13 Pro Limited Edition"]
+    not_matching = ["Samsung Galaxy S22", "Google Pixel 6", "Sony Xperia Pro"]
+
+    print(Responses.matching_list(matching))
+    print(Responses.not_matching_list(not_matching))    
     # Sample data
     recommendation = [
         "Apple iPhone 13 Pro Max",
