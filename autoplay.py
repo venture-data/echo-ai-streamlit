@@ -38,17 +38,14 @@ def play_audio_sequence(audio_files: list):
     Parameters:
         audio_files (list): List of paths to audio files to play in sequence
     """
-    # Create a unique key for this sequence
+    # Initialize session state for tracking current audio
     if 'current_audio_index' not in st.session_state:
         st.session_state.current_audio_index = 0
-    
-    if 'last_audio_time' not in st.session_state:
-        st.session_state.last_audio_time = time.time()
     
     # Play current audio file
     if st.session_state.current_audio_index < len(audio_files):
         current_file = audio_files[st.session_state.current_audio_index]
-        st.audio(current_file, key=f"audio_{st.session_state.current_audio_index}")
+        st.audio(current_file)
         
         # Add a small delay to ensure sequential playback
         time.sleep(0.5)
@@ -56,7 +53,33 @@ def play_audio_sequence(audio_files: list):
         # Update index for next audio file
         st.session_state.current_audio_index += 1
         if st.session_state.current_audio_index < len(audio_files):
-            st.rerun()
+            st.experimental_rerun()
         else:
             # Reset when sequence is complete
             st.session_state.current_audio_index = 0
+
+# Alternative approach using base64 if the above doesn't work well
+def play_audio_sequence_alt(audio_files: list):
+    """
+    Alternative approach using HTML5 audio elements
+    """
+    import base64
+    
+    audio_elements = []
+    for i, file_path in enumerate(audio_files):
+        with open(file_path, "rb") as f:
+            data = f.read()
+            b64 = base64.b64encode(data).decode()
+            audio_elements.append(f"""
+                <audio id="audio_{i}" onended="document.getElementById('audio_{i+1}')?.play()">
+                    <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+                </audio>
+            """)
+    
+    md = f"""
+        {''.join(audio_elements)}
+        <script>
+            document.getElementById('audio_0')?.play();
+        </script>
+    """
+    st.markdown(md, unsafe_allow_html=True)

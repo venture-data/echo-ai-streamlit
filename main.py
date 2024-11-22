@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 from st_audiorec import st_audiorec
 from utils import DataMapping, Responses
-from autoplay import autoplay_audio, play_audio_sequence
+from autoplay import autoplay_audio, play_audio_sequence, play_audio_sequence_alt
 
 # Load environment variables
 load_dotenv(override=True)
@@ -227,7 +227,11 @@ class StreamlitApp:
                                     audio_paths.append(audio_path_2)
 
                                 if audio_paths:
-                                    play_audio_sequence(audio_paths)
+                                    try:
+                                        play_audio_sequence(audio_paths)
+                                    except Exception as e:
+                                        # If the first method fails, try the alternative
+                                        play_audio_sequence_alt(audio_paths)
                             
                         #     recommendation_text = "I recommend:\n" + "\n".join(
                         #         [f"• {rec}" for rec in recommendations[:3]]
