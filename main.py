@@ -147,6 +147,7 @@ class StreamlitApp:
             audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
             if audio_path_greetings:
                 st.audio(audio_path_greetings)
+            
             # Add the audio recorder
             wav_audio_data = st_audiorec()
             
@@ -191,11 +192,6 @@ class StreamlitApp:
                         if item_name:
                             item_captilized = self.voice_interface.capitalize_word(item_name)
                         
-                        # st.session_state.conversation.append({
-                        #     "role": "user",
-                        #     "content": transcript
-                        # })
-                        
                             try:
                                 response = requests.post(
                                     f"{self.api_endpoint}/all-recommendations",
@@ -206,17 +202,16 @@ class StreamlitApp:
                                 
                                 recommendations = response.json()["recommendations"]
                                 print(recommendations)
+                                
+                                # Update session state immediately
                                 st.session_state.last_recommendation = recommendations
+                                
+                                # Force a rerun to update the UI
+                                st.rerun()
 
                                 matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(recommendations, item_captilized)
                                 matching_script = self.response.matching_list(matching_items)
                                 not_matching_script = self.response.not_matching_list(not_matching_items)
-                                print(f"Matching Script: {matching_script}")
-                                print(f"Not Matching Script: {not_matching_script}")
-
-                                # script = self.voice_interface.format_recommendation_message(recommendations)
-                                # # print(script)
-                                # audio_paths = []
 
                                 audio_path_1 = self.voice_interface.text_to_speech(matching_script)
                                 if audio_path_1:
@@ -225,27 +220,14 @@ class StreamlitApp:
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
                                 if audio_path_2:
                                     delayed_autoplay_audio(audio_path_2, 20)
-
-                            
-                        #     recommendation_text = "I recommend:\n" + "\n".join(
-                        #         [f"• {rec}" for rec in recommendations[:3]]
-                        #     )
                             
                             except requests.exceptions.RequestException as e:
                                 st.error(f"Error getting recommendations: {str(e)}")
-                                recommendation_text = "I'm having trouble getting recommendations right now."
-                                return recommendation_text
-                        
-                        # st.session_state.conversation.append({
-                        #     "role": "assistant",
-                        #     "content": recommendation_text
-                        # })
-                        
-                        # self.voice_interface.text_to_speech(recommendation_text)
+                                return
                         
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
-                    print(f"Error details: {str(e)}")  # More detailed error in console
+                    print(f"Error details: {str(e)}")
     
     def complete_order(self):
         """Complete the order and reset the cart."""
@@ -265,12 +247,34 @@ class StreamlitApp:
             st.session_state.order_complete = True
             st.rerun()
             
-    def display_recommendations(self):
-        """Display current recommendations if available."""
+    # def display_recommendations(self):
+    #     """Display current recommendations if available."""
+    #     if st.session_state.last_recommendation:
+    #         st.subheader("Latest Recommendations")
+    #         for rec in st.session_state.last_recommendation:
+    #             with st.container():
+    #                 col1, col2 = st.columns([4, 1])
+    #                 with col1:
+    #                     st.markdown(f"""
+    #                         <div class="recommendation-card">
+    #                             <div>{rec}</div>
+    #                         </div>
+    #                     """, unsafe_allow_html=True)
+    #                 with col2:
+    #                     if st.button("Add", key=f"add_{rec}"):
+    #                         if rec not in st.session_state.cart:
+    #                             st.session_state.cart.append(rec)
+    #                             st.rerun()
+    
+    def run(self):
+        """Run the Streamlit application."""
+        self.display_header()
+        
+        # Display recommendations first
         if st.session_state.last_recommendation:
-            st.subheader("Latest Recommendations")
-            for rec in st.session_state.last_recommendation:
-                with st.container():
+            with st.container():
+                st.subheader("Latest Recommendations")
+                for rec in st.session_state.last_recommendation:
                     col1, col2 = st.columns([4, 1])
                     with col1:
                         st.markdown(f"""
@@ -283,10 +287,6 @@ class StreamlitApp:
                             if rec not in st.session_state.cart:
                                 st.session_state.cart.append(rec)
                                 st.rerun()
-    
-    def run(self):
-        """Run the Streamlit application."""
-        self.display_header()
         
         # Sidebar/Cart
         self.display_cart()
@@ -304,9 +304,6 @@ class StreamlitApp:
                         {message["content"]}
                     </div>
                 """, unsafe_allow_html=True)
-            
-            # Recommendations
-            self.display_recommendations()
         
         with main_content_col2:
             st.subheader("Voice Controls")
