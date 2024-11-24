@@ -14,7 +14,6 @@ load_dotenv(override=True)
 class StreamlitApp:
     def __init__(self):
         """Initialize the Streamlit application."""
-        # Initialize session state and configuration first
         self.initialize_session_state()
         self.configure_page()
         self.add_custom_css()
@@ -37,7 +36,9 @@ class StreamlitApp:
             'selected_product': None,
             'pending_audio': None,
             'pending_delayed_audio': None,
-            'audio_delay': None
+            'audio_delay': None,
+            'processing': False,
+            'current_recording': None
         }
         
         for var, default_value in session_vars.items():
@@ -114,6 +115,10 @@ class StreamlitApp:
                 .stAudio {
                     margin-bottom: 20px;
                 }
+
+                div[data-testid="stSpinner"] {
+                    display: none;
+                }
             </style>
         """, unsafe_allow_html=True)
                 
@@ -165,102 +170,94 @@ class StreamlitApp:
             st.session_state.order_complete = True
             st.rerun()
 
+    def process_audio_input(self, wav_audio_data):
+        """Process audio input and generate recommendations."""
+        try:
+            st.session_state.processing = True
+            os.makedirs("recordings", exist_ok=True)
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            recording_path = os.path.join("recordings", f"recording_{timestamp}.wav")
+            
+            with open(recording_path, 'wb') as f:
+                f.write(wav_audio_data)
+            
+            transcript = self.voice_interface.transcribe_audio(recording_path)
+            
+            if hasattr(transcript, 'error'):
+                st.error(f"Transcription error: {transcript.error}")
+                return
+            
+            if not transcript:
+                st.error("Could not understand the audio. Please try again.")
+                return
+            
+            st.session_state.conversation.append({
+                "role": "user",
+                "content": transcript
+            })
+            
+            item_name = self.voice_interface.extract_item_name(transcript)
+            
+            if not item_name:
+                order_intent = self.voice_interface.check_order_intent(transcript)
+                audio_path = self.voice_interface.text_to_speech(order_intent)
+                if audio_path:
+                    st.session_state.pending_audio = audio_path
+                    
+            if item_name:
+                item_captilized = self.voice_interface.capitalize_word(item_name)
+                response = requests.post(
+                    f"{self.api_endpoint}/all-recommendations",
+                    json={"product_name": item_captilized},
+                    timeout=10
+                )
+                response.raise_for_status()
+                recommendations = response.json()["recommendations"]
+                
+                st.session_state.last_recommendation = recommendations
+                matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(
+                    recommendations, item_captilized)
+                
+                matching_script = self.response.matching_list(matching_items)
+                not_matching_script = self.response.not_matching_list(not_matching_items)
+                
+                audio_path_1 = self.voice_interface.text_to_speech(matching_script)
+                audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
+                
+                if audio_path_1:
+                    st.session_state.pending_audio = audio_path_1
+                if audio_path_2:
+                    st.session_state.pending_delayed_audio = audio_path_2
+                    st.session_state.audio_delay = 20
+            
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+            print(f"Error details: {str(e)}")
+        finally:
+            st.session_state.processing = False
+
     def display_voice_controls(self):
         """Display voice control buttons and recording status."""
         with st.container():
             st.write("Click to start/stop recording:")
-            greetings_text = self.response.greeting_based_on_time()
-            audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
-            if audio_path_greetings:
-                st.audio(audio_path_greetings)
             
-            wav_audio_data = st_audiorec()
+            if not st.session_state.processing:
+                greetings_text = self.response.greeting_based_on_time()
+                audio_path_greetings = self.voice_interface.text_to_speech(greetings_text)
+                if audio_path_greetings:
+                    st.audio(audio_path_greetings)
             
-            if wav_audio_data is not None:
-                try:
-                    with st.spinner("Processing your voice input..."):
-                        os.makedirs("recordings", exist_ok=True)
-                        timestamp = time.strftime("%Y%m%d-%H%M%S")
-                        recording_path = os.path.join("recordings", f"recording_{timestamp}.wav")
-                        
-                        with open(recording_path, 'wb') as f:
-                            f.write(wav_audio_data)
-                        
-                        print(f"Recording saved to: {recording_path}")
-                        transcript = self.voice_interface.transcribe_audio(recording_path)
-                        
-                        if hasattr(transcript, 'error'):
-                            st.error(f"Transcription error: {transcript.error}")
-                            return
-                        
-                        if not transcript:
-                            st.error("Could not understand the audio. Please try again.")
-                            return
-                        
-                        st.session_state.conversation.append({
-                            "role": "user",
-                            "content": transcript
-                        })
-                        
-                        item_name = self.voice_interface.extract_item_name(transcript)
-                        
-                        if not item_name:
-                            order_intent = self.voice_interface.check_order_intent(transcript)
-                            audio_path = self.voice_interface.text_to_speech(order_intent)
-                            if audio_path:
-                                st.session_state.pending_audio = audio_path
-                                st.rerun()
-                                
-                        if item_name:
-                            item_captilized = self.voice_interface.capitalize_word(item_name)
-                            try:
-                                response = requests.post(
-                                    f"{self.api_endpoint}/all-recommendations",
-                                    json={"product_name": item_captilized},
-                                    timeout=10
-                                )
-                                response.raise_for_status()
-                                recommendations = response.json()["recommendations"]
-                                
-                                st.session_state.last_recommendation = recommendations
-                                matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(
-                                    recommendations, item_captilized)
-                                
-                                matching_script = self.response.matching_list(matching_items)
-                                not_matching_script = self.response.not_matching_list(not_matching_items)
-                                
-                                audio_path_1 = self.voice_interface.text_to_speech(matching_script)
-                                audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
-                                
-                                if audio_path_1:
-                                    st.session_state.pending_audio = audio_path_1
-                                if audio_path_2:
-                                    st.session_state.pending_delayed_audio = audio_path_2
-                                    st.session_state.audio_delay = 20
-                                
-                                st.rerun()
-                                
-                            except requests.exceptions.RequestException as e:
-                                st.error(f"Error getting recommendations: {str(e)}")
-                                return
-                                
-                except Exception as e:
-                    st.error(f"An error occurred: {str(e)}")
-                    print(f"Error details: {str(e)}")
+                # Add the audio recorder
+                wav_audio_data = st_audiorec()
+                
+                if wav_audio_data is not None and wav_audio_data != st.session_state.current_recording:
+                    st.session_state.current_recording = wav_audio_data
+                    self.process_audio_input(wav_audio_data)
+                    st.rerun()
 
     def run(self):
         """Run the Streamlit application."""
         self.display_header()
-        
-        # Handle pending audio playback
-        if st.session_state.pending_audio:
-            autoplay_audio(st.session_state.pending_audio)
-            st.session_state.pending_audio = None
-        
-        if st.session_state.pending_delayed_audio and st.session_state.audio_delay:
-            delayed_autoplay_audio(st.session_state.pending_delayed_audio, st.session_state.audio_delay)
-            st.session_state.pending_delayed_audio = None
-            st.session_state.audio_delay = None
         
         # Display recommendations first
         if st.session_state.last_recommendation:
@@ -310,7 +307,19 @@ class StreamlitApp:
                 st.session_state.pending_audio = None
                 st.session_state.pending_delayed_audio = None
                 st.session_state.audio_delay = None
+                st.session_state.current_recording = None
+                st.session_state.processing = False
                 st.rerun()
+        
+        # Handle audio playback at the end of the UI updates
+        if st.session_state.pending_audio:
+            autoplay_audio(st.session_state.pending_audio)
+            st.session_state.pending_audio = None
+        
+        if st.session_state.pending_delayed_audio and st.session_state.audio_delay:
+            delayed_autoplay_audio(st.session_state.pending_delayed_audio, st.session_state.audio_delay)
+            st.session_state.pending_delayed_audio = None
+            st.session_state.audio_delay = None
 
 if __name__ == "__main__":
     app = StreamlitApp()
