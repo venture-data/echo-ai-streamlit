@@ -25,78 +25,6 @@ class StreamlitApp:
         # Initialize API endpoint
         self.api_endpoint = st.secrets['API_ENDPOINT']
         
-    def setup_streamlit(self):
-        """Configure Streamlit page settings and styling."""
-        st.set_page_config(
-            page_title="ECHO AI Recommender",
-            page_icon="🎙️",
-            layout="wide"
-        )
-        
-        # Add custom CSS for styling
-        st.markdown("""
-            <style>
-                .stButton button {
-                    width: 100%;
-                    min-height: 45px;
-                    font-size: 16px;
-                    margin: 5px 0;
-                    padding: 0 15px;
-                    border-radius: 8px;
-                }
-                
-                .order-summary {
-                    background-color: #f0f2f6;
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin: 10px 0;
-                }
-                
-                .chat-message {
-                    padding: 12px;
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                    word-wrap: break-word;
-                }
-                
-                .user-message {
-                    background-color: #e1f5fe;
-                    margin-left: 10px;
-                }
-                
-                .assistant-message {
-                    background-color: #f5f5f5;
-                    margin-right: 10px;
-                }
-                
-                .recommendation-card {
-                    background-color: white;
-                    padding: 12px;
-                    border-radius: 8px;
-                    margin: 8px 0;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                
-                .recommendation-card button {
-                    min-height: 35px;
-                }
-                
-                .voice-controls {
-                    position: sticky;
-                    top: 0;
-                    z-index: 100;
-                    background-color: white;
-                    padding: 10px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                
-                .stAudio {
-                    margin-bottom: 20px;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-        
     def initialize_session_state(self):
         """Initialize session state variables."""
         session_vars = {
@@ -104,40 +32,15 @@ class StreamlitApp:
             'order_complete': False,
             'conversation': [],
             'last_recommendation': None,
-            'selected_product': None
+            'selected_product': None,
+            'pending_audio': None,  # New session state variable for audio
+            'pending_delayed_audio': None,  # New session state variable for delayed audio
+            'audio_delay': None  # New session state variable for audio delay
         }
         
         for var, default_value in session_vars.items():
             if var not in st.session_state:
                 st.session_state[var] = default_value
-                
-    def display_header(self):
-        """Display the application header."""
-        st.markdown("""
-            <h1 class="main-header" style="text-align: center;">🎙️ ECHO AI Recommender</h1>
-            <h3 class="sub-header" style="text-align: center;">Voice-Enabled Shopping Assistant</h3>
-            <hr>
-        """, unsafe_allow_html=True)
-                
-    def display_cart(self):
-        """Display the shopping cart and its controls."""
-        if st.session_state.cart:
-            st.sidebar.subheader("🛒 Shopping Cart")
-            
-            for item in st.session_state.cart:
-                with st.sidebar.container():
-                    col1, col2 = st.sidebar.columns([4, 1])
-                    col1.text(f"• {item}")
-                    if col2.button("❌", key=f"remove_{item}"):
-                        st.session_state.cart.remove(item)
-                        st.rerun()
-            
-            st.sidebar.markdown("---")
-            total_items = len(st.session_state.cart)
-            st.sidebar.text(f"Total Items: {total_items}")
-            
-            if st.sidebar.button("🛍️ Complete Order", key="complete_order"):
-                self.complete_order()
                 
     def display_voice_controls(self):
         """Display voice control buttons and recording status."""
@@ -187,7 +90,8 @@ class StreamlitApp:
                             order_intent = self.voice_interface.check_order_intent(transcript)
                             audio_path = self.voice_interface.text_to_speech(order_intent)
                             if audio_path:
-                                autoplay_audio(audio_path)
+                                st.session_state.pending_audio = audio_path
+                                st.rerun()
 
                         if item_name:
                             item_captilized = self.voice_interface.capitalize_word(item_name)
@@ -203,23 +107,24 @@ class StreamlitApp:
                                 recommendations = response.json()["recommendations"]
                                 print(recommendations)
                                 
-                                # Update session state immediately
+                                # Update session state
                                 st.session_state.last_recommendation = recommendations
-                                
-                                # Force a rerun to update the UI
-                                st.rerun()
 
-                                matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(recommendations, item_captilized)
+                                matching_items, not_matching_items = self.data_mapping.split_list_on_product_name(
+                                    recommendations, item_captilized)
                                 matching_script = self.response.matching_list(matching_items)
                                 not_matching_script = self.response.not_matching_list(not_matching_items)
 
                                 audio_path_1 = self.voice_interface.text_to_speech(matching_script)
-                                if audio_path_1:
-                                    autoplay_audio(audio_path_1)
-
                                 audio_path_2 = self.voice_interface.text_to_speech(not_matching_script)
+                                
+                                if audio_path_1:
+                                    st.session_state.pending_audio = audio_path_1
                                 if audio_path_2:
-                                    delayed_autoplay_audio(audio_path_2, 20)
+                                    st.session_state.pending_delayed_audio = audio_path_2
+                                    st.session_state.audio_delay = 20
+                                
+                                st.rerun()
                             
                             except requests.exceptions.RequestException as e:
                                 st.error(f"Error getting recommendations: {str(e)}")
@@ -229,46 +134,20 @@ class StreamlitApp:
                     st.error(f"An error occurred: {str(e)}")
                     print(f"Error details: {str(e)}")
     
-    def complete_order(self):
-        """Complete the order and reset the cart."""
-        if st.session_state.cart:
-            order_summary = "Order completed! Items purchased:\n" + "\n".join(
-                [f"• {item}" for item in st.session_state.cart]
-            )
-            
-            st.session_state.conversation.append({
-                "role": "assistant",
-                "content": order_summary
-            })
-            
-            self.voice_interface.text_to_speech(order_summary)
-            
-            st.session_state.cart = []
-            st.session_state.order_complete = True
-            st.rerun()
-            
-    # def display_recommendations(self):
-    #     """Display current recommendations if available."""
-    #     if st.session_state.last_recommendation:
-    #         st.subheader("Latest Recommendations")
-    #         for rec in st.session_state.last_recommendation:
-    #             with st.container():
-    #                 col1, col2 = st.columns([4, 1])
-    #                 with col1:
-    #                     st.markdown(f"""
-    #                         <div class="recommendation-card">
-    #                             <div>{rec}</div>
-    #                         </div>
-    #                     """, unsafe_allow_html=True)
-    #                 with col2:
-    #                     if st.button("Add", key=f"add_{rec}"):
-    #                         if rec not in st.session_state.cart:
-    #                             st.session_state.cart.append(rec)
-    #                             st.rerun()
-    
     def run(self):
         """Run the Streamlit application."""
         self.display_header()
+        
+        # Handle pending audio playback
+        if st.session_state.pending_audio:
+            autoplay_audio(st.session_state.pending_audio)
+            st.session_state.pending_audio = None  # Clear the pending audio
+            
+        # Handle delayed audio playback
+        if st.session_state.pending_delayed_audio and st.session_state.audio_delay:
+            delayed_autoplay_audio(st.session_state.pending_delayed_audio, st.session_state.audio_delay)
+            st.session_state.pending_delayed_audio = None
+            st.session_state.audio_delay = None
         
         # Display recommendations first
         if st.session_state.last_recommendation:
@@ -315,6 +194,9 @@ class StreamlitApp:
                 st.session_state.cart = []
                 st.session_state.order_complete = False
                 st.session_state.last_recommendation = None
+                st.session_state.pending_audio = None
+                st.session_state.pending_delayed_audio = None
+                st.session_state.audio_delay = None
                 st.rerun()
 
 if __name__ == "__main__":
